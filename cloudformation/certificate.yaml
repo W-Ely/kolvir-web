@@ -1,0 +1,42 @@
+# This stack is intended for use with services that require certs to live in
+# us-east-1, like ApiGateway (EDGE) and Cloudfront. As such this stack should
+# be deployed in us-east-1 while most other stacks/services can be deployed in
+# any region on wants.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ACM Certificates
+Parameters:
+  SubDomainName:
+    Description: Sub-Domain name of website, ei `www`
+    Type: String
+  DomainName:
+    Description: Domain name of website, ei `example.com`
+    Type: String
+  HostedZoneId:
+    Description: ID of the Route53 hosted zone.
+    Type: String
+Resources:
+  CertificateManagerCertificate:
+    # Deleteing this stack might leave behind a Route53 entry used for validation
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Sub
+        - "${SubDomainName}.${DomainName}"
+        - SubDomainName: !Ref SubDomainName
+          DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Sub
+            - "${SubDomainName}.${DomainName}"
+            - SubDomainName: !Ref SubDomainName
+              DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+      ValidationMethod: DNS
+Outputs:
+  StackName:
+    Description: 'Stack name.'
+    Value: !Sub '${AWS::StackName}'
+  CertificateARN:
+    Description: 'The ARN of the acm certificate.'
+    Value: !Ref CertificateManagerCertificate
+    Export:
+      Name: !Sub '${AWS::StackName}-CertificateARN'
